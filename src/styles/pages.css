@@ -1,5 +1,5 @@
-/* ============================================================
-   TG-FLY — Page & Component Styles
+﻿/* ============================================================
+   TG-FLY â€” Page & Component Styles
    Enterprise Cloud Design
    ============================================================ */
 
@@ -1858,7 +1858,7 @@
   position: relative;
 }
 .plan-selector-recommended::before {
-  content: '✦ RECOMMENDED';
+  content: 'âœ¦ RECOMMENDED';
   position: absolute;
   top: -12px;
   left: 50%;
@@ -2314,5 +2314,15 @@
   .pricing-section { padding: var(--space-xl) 0; }
   .cta-banner { padding: var(--space-xl) 0; }
 }
-. a d m i n - g r i d - l g   {   d i s p l a y :   g r i d ;   g r i d - t e m p l a t e - c o l u m n s :   1 f r ;   g a p :   v a r ( - - s p a c e - l g ) ;   }   @ m e d i a   ( m i n - w i d t h :   9 9 2 p x )   {   . a d m i n - g r i d - l g   {   g r i d - t e m p l a t e - c o l u m n s :   7 f r   5 f r ;   }   }  
- 
+
+.admin-grid-lg {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+}
+
+@media (min-width: 992px) {
+  .admin-grid-lg {
+    grid-template-columns: 7fr 5fr;
+  }
+}
