@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import api from '../services/api';
 import { useToast } from './ToastContext';
 
@@ -21,9 +21,55 @@ function clearDownloadState(fileId) {
   localStorage.removeItem(`tgfly_download_${fileId}`);
 }
 
+// Persist the overall downloads map metadata
+function saveDownloadsMeta(downloadsMap) {
+  try {
+    const metaList = Array.from(downloadsMap.values()).map(dl => ({
+      id: dl.id,
+      fileId: dl.fileId,
+      name: dl.name,
+      size: dl.size,
+      progress: dl.progress,
+      status: dl.status === 'downloading' ? 'paused' : dl.status,
+      error: dl.error,
+      receivedBytes: dl.receivedBytes
+    }));
+    localStorage.setItem('tgfly_downloads_meta', JSON.stringify(metaList));
+  } catch (err) {
+    console.error('Failed to save downloads meta', err);
+  }
+}
+
+function loadDownloadsMeta() {
+  try {
+    const data = localStorage.getItem('tgfly_downloads_meta');
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function DownloadProvider({ children }) {
-  const [downloads, setDownloads] = useState(new Map()); // id -> { id, fileId, name, size, progress, status, error, controller, receivedChunks }
+  const [downloads, setDownloads] = useState(() => {
+    // Initialize from localStorage metadata
+    const meta = loadDownloadsMeta();
+    const map = new Map();
+    meta.forEach(dl => {
+      map.set(dl.id, {
+        ...dl,
+        controller: null,
+        chunks: [] // Chunks cannot be persisted across reloads easily in memory
+      });
+    });
+    return map;
+  });
+  
   const toast = useToast();
+
+  // Save metadata to localStorage on every change
+  useEffect(() => {
+    saveDownloadsMeta(downloads);
+  }, [downloads]);
 
   const updateDownload = useCallback((id, updates) => {
     setDownloads(prev => {
@@ -78,6 +124,15 @@ export function DownloadProvider({ children }) {
       const savedState = getDownloadState(dlData.fileId);
       let startByte = dlData.receivedBytes || (savedState?.bytesReceived || 0);
       let chunks = dlData.chunks || [];
+
+      // If we resumed but chunks is empty, it means page reloaded and we lost memory.
+      // We must start over because we can't concatenate missing chunks easily via fetch without saving to disk incrementally.
+      // For a robust implementation, we would write to File System Access API. 
+      // For now, if memory chunks are lost, we restart download.
+      if (startByte > 0 && chunks.length === 0) {
+        startByte = 0;
+        toast.info(`Restarting download for ${dlData.name} due to page reload`);
+      }
 
       const headers = {};
       if (startByte > 0) {

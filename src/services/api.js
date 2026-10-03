@@ -167,11 +167,22 @@ class ApiService {
     });
   }
 
+  async getPresignedUploadUrlBatch(uploadId, partNumbers) {
+    return this.request('/upload/presign-batch', {
+      method: 'POST',
+      body: JSON.stringify({ uploadId, partNumbers }),
+    });
+  }
+
   async completeUpload(uploadId, parts) {
     return this.request('/upload/complete', {
       method: 'POST',
       body: JSON.stringify({ uploadId, parts }),
     });
+  }
+
+  async getUploadParts(uploadId) {
+    return this.request(`/upload/${uploadId}/parts`);
   }
 
   async abortUpload(uploadId) {

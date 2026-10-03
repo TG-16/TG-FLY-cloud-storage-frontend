@@ -20,7 +20,7 @@ function getFileIcon(mimeType) {
 }
 
 export default function UploadManager() {
-  const { uploads, queueFiles, uploadFile, removeUpload, clearDoneUploads } = useUploadContext();
+  const { uploads, queueFiles, uploadFile, pauseUpload, removeUpload, clearDoneUploads } = useUploadContext();
   const toast = useToast();
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -42,7 +42,7 @@ export default function UploadManager() {
     }
   };
 
-  const uploadEntries = [...uploads.entries()];
+  const uploadEntries = [...uploads.entries()].reverse(); // newest first
   const activeCount = uploadEntries.filter(([, u]) => u.status === 'uploading' || u.status === 'initiating' || u.status === 'completing').length;
   const doneCount = uploadEntries.filter(([, u]) => u.status === 'done').length;
 
@@ -137,11 +137,13 @@ export default function UploadManager() {
                     <div className="upload-item-name truncate">{upload.name}</div>
                     <span className="upload-item-size">{formatSize(upload.size)}</span>
                   </div>
-                  <div className="upload-item-status">
-                    {upload.status === 'idle' && (
+                  <div className="upload-item-status flex gap-xs">
+                    {(upload.status === 'idle' || upload.status === 'paused' || upload.status === 'error') && (
                       <button className="btn btn-primary btn-sm" onClick={() => uploadFile(id)} title="Start Upload">
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload</span>
-                        <span className="hide-mobile">Start Upload</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
+                        <span className="hide-mobile">
+                          {upload.status === 'error' ? 'Retry' : (upload.status === 'paused' ? 'Resume' : 'Start')}
+                        </span>
                       </button>
                     )}
                     {upload.status === 'initiating' && (
@@ -151,10 +153,10 @@ export default function UploadManager() {
                       </span>
                     )}
                     {upload.status === 'uploading' && (
-                      <span className="upload-status-badge" style={{ background: 'var(--primary-fixed)', color: 'var(--primary)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>upload</span>
-                        Uploading
-                      </span>
+                      <button className="btn btn-secondary btn-sm" onClick={() => pauseUpload(id)} title="Pause Upload">
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>pause</span>
+                        <span className="hide-mobile">Pause</span>
+                      </button>
                     )}
                     {upload.status === 'completing' && (
                       <span className="upload-status-badge" style={{ background: 'var(--primary-fixed)', color: 'var(--primary)' }}>
@@ -168,17 +170,10 @@ export default function UploadManager() {
                         Complete
                       </span>
                     )}
-                    {upload.status === 'error' && (
-                      <span className="upload-status-badge" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>error</span>
-                        Failed
-                      </span>
-                    )}
-                    {(upload.status === 'done' || upload.status === 'error' || upload.status === 'idle') && (
-                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => removeUpload(id)} title="Remove">
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
-                      </button>
-                    )}
+                    
+                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => removeUpload(id)} title="Remove">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                    </button>
                   </div>
                 </div>
 
